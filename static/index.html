@@ -1,0 +1,50 @@
+<html>
+
+<!--导入依赖-->
+<script src="wasm_exec_tiny.js"></script>
+
+<script>
+    const go = new Go();
+    const url = "tiny.wasm";
+    let wasm;
+
+    // 向go注册函数
+    // `xmh`跟go中定义的`go:wasm-module`一致 `add`跟go中定义的`export`一致
+    go.importObject.xmh = {
+        'add': function (x, y) {
+            alert("call add")
+            return x + y
+        }
+    }
+
+    function run() {
+        go.run(wasm) // 运行wasm的入口函数，即go代码的main()
+        console.log("multiply:", wasm.exports.multiply(5, 3)) // 调用go的导出函数
+    }
+
+    // 加载wasm
+    if ('instantiateStreaming' in WebAssembly) {
+        WebAssembly.instantiateStreaming(fetch(url), go.importObject)
+            .then((result) => {
+                    wasm = result.instance;
+                    run()
+                }
+            ).catch(reason => {
+            console.log(reason)
+        })
+    } else {
+        fetch(url).then(resp =>
+            resp.arrayBuffer()
+        ).then(bytes =>
+            WebAssembly.instantiate(bytes, go.importObject).then(function (obj) {
+                wasm = obj.instance;
+                run()
+            })
+        ).catch(reason => {
+            console.log(reason)
+        })
+    }
+
+</script>
+
+</html>
